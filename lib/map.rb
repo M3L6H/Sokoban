@@ -16,17 +16,27 @@ class Map
     #   - "w" for a wall
     # @return [Map] a new map instance
     # @raise [MapFormatError] if the passed map is in an incorrect format
-    def initialize(map)
-        raise MapFormatError    unless map.is_a? Array
-        raise MapHeightError    unless map.size >= 1
-        raise MapFormatError    unless map[0].is_a? String
-        raise MapWidthError     unless map[0].size >= 1
-        raise MapRowError       unless map.all?{ |row| row.size == map[0].size }
+    def initialize(map_data)
+        raise MapFormatError unless map_data.is_a? Array
+        raise MapHeightError unless map_data.size >= 1
+        raise MapFormatError unless map_data[0].is_a? String
+        raise MapWidthError  unless map_data[0].size >= 1
+        raise MapRowError unless map_data.all?{ |r| r.size == map_data[0].size }
         
-        @height = map.size
-        @width = map[0].size
+        @map_data = map_data
+        @height = map_data.size
+        @width = map_data[0].size
         
-        make_map(map)
+        make_map(map_data)
+    end
+
+    def restart
+        @player = nil
+        make_map(map_data)
+    end
+
+    def win?
+        boxes.all?(&:done?)
     end
 
     # Moves the player in the specified direction
@@ -60,18 +70,21 @@ class Map
         # We cannot head into a wall
         return false if @map[new_p.x][new_p.y].is_a? Wall
 
-        target = @entities[new_p.x][new_p.y]
+        entity = @entities[new_p.x][new_p.y]
 
         # Are we trying to push a box?
-        if target.is_a? Box
+        if entity.is_a? Box
             new_bp = new_p + delta
 
             # Boxes can only be pushed into empty spaces/targets
             return false if @map[new_bp.x][new_bp.y].is_a?(Wall) || @entities[new_bp.x][new_bp.y].is_a?(Box)
 
             # Move the box
-            @entities[new_bp.x][new_bp.y] = target
+            @entities[new_bp.x][new_bp.y] = entity
             @entities[new_p.x][new_p.y] = nil
+
+            # Update its done state
+            entity.done = @map[new_bp.x][new_bp.y].is_a?(Target)
         end
 
         # Move the player
@@ -98,7 +111,7 @@ class Map
 
     private
 
-    attr_reader :height, :width, :player, :player_pos
+    attr_reader :height, :width, :player, :player_pos, :boxes, :map, :map_data
 
     def each_in_map(&prc)
         (0...height).each do |i|
@@ -113,12 +126,13 @@ class Map
     # @param map [Array<string>] a list of strings describing the map
     # @return [nil]
     # @raise [MapFormatError] if an invalid symbol is found
-    def make_map(map)
+    def make_map(map_data)
         @map = Array.new(height) { Array.new(width) }
         @entities = Array.new(height) { Array.new(width) }
+        @boxes = []
 
         each_in_map do |i, j|
-            ele = get_element(map[i][j])
+            ele = get_element(map_data[i][j])
             if ele.is_a? MapEntity
                 @entities[i][j] = ele 
                 @map[i][j] = Air.new
@@ -127,6 +141,8 @@ class Map
                     raise MapPlayerError if player
                     @player = ele
                     @player_pos = Pair.new(i, j) 
+                elsif ele.is_a? Box
+                    @boxes << ele
                 end
             else
                 @map[i][j] = ele
