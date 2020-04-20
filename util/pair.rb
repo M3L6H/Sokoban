@@ -1,3 +1,4 @@
+# @author Michael Hollingworth
 class Pair
     attr_accessor :first, :second
     

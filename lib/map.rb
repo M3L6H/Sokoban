@@ -150,6 +150,7 @@ class Map
                 @player_pos = Pair.new(pos.x, pos.y) 
             elsif entity.is_a? Box
                 @boxes << entity
+                entity.done = true if @map[pos.x][pos.y].is_a?(Target)
             end
         end
 

@@ -7,6 +7,7 @@ require_relative "./map.rb"
 class Window
     def initialize
         Curses.init_screen
+        Curses.start_color
         Curses.curs_set(0) # don't show the cursor
         Curses.noecho # don't echo the keys we press
 
@@ -17,6 +18,11 @@ class Window
 
         @desc = Curses::Window.new(5, Curses.cols, Curses.lines - 5, 0)
         @desc.refresh
+
+        # Colors
+        Curses.init_pair(1, 1, 0) # red
+        Curses.init_pair(2, 2, 0) # green
+        Curses.init_pair(3, 4, 0) # blue
     end
 
     def get_input
@@ -38,11 +44,32 @@ class Window
         true
     end
 
+    def get_color(color_str)
+        case color_str
+        when "0;31;49m"
+            1
+        when "0;32;49m"
+            2
+        when "0;34;49m"
+            3
+        else
+            raise "Unrecognized color string: #{color_str}!"
+        end
+    end
+
     def print_game
         @game.clear
         @map.to_s.split("\n").each_with_index do |line, i|
             @game.setpos((Curses.lines - 5) / 2 - @map.height / 2 + i, Curses.cols / 2 - @map.width / 2)
-            @game << line + "\n"
+            line.split("\e[").each do |color_str|
+                match = color_str.match(/\d+;\d+;\d+m/)
+                if match
+                    @game.attron(Curses.color_pair(get_color(match.to_s))) { @game << color_str[color_str.index("m") + 1..-1] }
+                else
+                    @game << color_str.gsub(/0m/, "")
+                end
+            end
+            @game << "\n"
         end
         @game.refresh
     end

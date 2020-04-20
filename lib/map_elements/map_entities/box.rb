@@ -12,7 +12,6 @@ class Box < MapEntity
     end
     
     def to_s
-        "☒".center(2)
-        # self.done? ? "☒".center(2).green : "☒".center(2).white
+        self.done? ? "☒".center(2).green : "☒".center(2)
     end
 end
