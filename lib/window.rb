@@ -25,18 +25,38 @@ class Window
         Curses.init_pair(3, 4, 0) # blue
     end
 
+    def load_level
+        @level = Level::LEVELS[@level_num]
+        @map = Map.new(@level.map_data, @level.entity_data)
+        self.print_desc
+    end
+
+    def next_level
+        @level_num = [@level_num + 1, Level::LEVELS.size - 1].min
+        self.load_level
+    end
+
+    def prev_level
+        @level_num = [@level_num - 1, 0].max
+        self.load_level
+    end
+
     def get_input
         case @game.getch
-        when Curses::Key::UP, "w"
+        when "w"
             @map.move(:u)
-        when Curses::Key::DOWN, "s"
+        when "s"
             @map.move(:d)
-        when Curses::Key::LEFT, "a"
+        when "a"
             @map.move(:l)
-        when Curses::Key::RIGHT, "d"
+        when "d"
             @map.move(:r)
         when " "
             @map.restart
+        when "."
+            self.next_level
+        when ","
+            self.prev_level
         when "q"
             return false
         end
@@ -85,13 +105,41 @@ class Window
         @desc.refresh
     end
 
+    def print_msg(msg)
+        @desc.clear
+        @desc.setpos(0, 0)
+        @desc << "━" * Curses.cols
+        @desc << msg
+        @desc.refresh
+    end
+
+    def prompt_user(msg)
+        self.print_msg(msg)
+        case @desc.getch
+        when "y"
+            self.print_desc
+            true
+        else
+            self.print_desc
+            false
+        end
+    end
+
     def start
         begin
-            @level = Level::LEVELS[@level_num]
-            @map = Map.new(@level.map_data, @level.entity_data)
+            self.load_level
             self.print_game
-            self.print_desc
-            while get_input
+            while true
+                if (@map.win?)
+                    @map.restart
+                    if @level_num == Level::LEVELS.size - 1
+                        self.prompt_user("You have completed all the levels. Congratulations! (c)")
+                    else
+                        self.next_level if self.prompt_user("Level complete! Move to the next level? (y/n)")
+                    end
+                elsif !self.get_input
+                    break if self.prompt_user("Are you sure you want to quit? (y/n)")
+                end
                 self.print_game
             end
         ensure
