@@ -15,7 +15,7 @@ You play as a factory worker. Your goal is to move crates onto a set of
 designated locations. However, you can only push the crates. Pulling is out of
 the question.
 
-There are currently five levels available to solve, taken from
+There are currently ten levels available to solve, taken from
 [this website](https://www.mathsisfun.com/games/sokoban.html). If I find the
 time, I will add more/create my own.
 
