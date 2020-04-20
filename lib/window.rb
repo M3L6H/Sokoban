@@ -99,7 +99,7 @@ class Window
         @desc.setpos(0, 0)
         @desc << "━" * Curses.cols
         @desc << @level.name + "\n"
-        @desc << "Use WASD to move. Press space to restart\n"
+        @desc << "Use WASD to move. Press space to restart. q to quit.\n"
         @desc << "Push all the boxes onto the red targets.\n"
         @desc << ", takes you to the previous level while . moves you forward"
         @desc.refresh
