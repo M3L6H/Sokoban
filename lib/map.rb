@@ -4,19 +4,22 @@ require_relative "./map_elements/all.rb"
 
 # @author Michael Hollingworth
 class Map
+    attr_reader :height, :width
+    
     # Initializes a new instance of Map
     #
-    # @param map [Array<String>] a list of strings describing the map
+    # @param map_data [Array<String>] a list of strings describing the map
     #   The strings should all have the same length
     #   The strings should adhere to the following format:
     #   - " " for empty space
-    #   - "b" for a box
-    #   - "p" for the player start. There should only be one!
     #   - "t" for a target. There should be the same number of boxes and targets
     #   - "w" for a wall
+    # @param entity_data [Array<Pair<Pair<Numeric>,String>] an array of pairs
+    #   describing the locations of entities
+    #   Entities should be either "p" for player or "b" for box
     # @return [Map] a new map instance
     # @raise [MapFormatError] if the passed map is in an incorrect format
-    def initialize(map_data)
+    def initialize(map_data, entity_data)
         raise MapFormatError unless map_data.is_a? Array
         raise MapHeightError unless map_data.size >= 1
         raise MapFormatError unless map_data[0].is_a? String
@@ -24,15 +27,16 @@ class Map
         raise MapRowError unless map_data.all?{ |r| r.size == map_data[0].size }
         
         @map_data = map_data
+        @entity_data = entity_data
         @height = map_data.size
         @width = map_data[0].size
         
-        make_map(map_data)
+        make_map(map_data, entity_data)
     end
 
     def restart
         @player = nil
-        make_map(map_data)
+        make_map(map_data, entity_data)
     end
 
     def win?
@@ -103,7 +107,7 @@ class Map
 
         each_in_map do |i, j|
             str += (@entities[i][j] ? @entities[i][j].to_s : @map[i][j].to_s)
-            str += "\n" if j == width - 1
+            str += "\n" if j == self.width - 1
         end
         
         str
@@ -111,11 +115,11 @@ class Map
 
     private
 
-    attr_reader :height, :width, :player, :player_pos, :boxes, :map, :map_data
+    attr_reader :player, :player_pos, :boxes, :map, :map_data, :entity_data
 
     def each_in_map(&prc)
-        (0...height).each do |i|
-            (0...width).each do |j|
+        (0...self.height).each do |i|
+            (0...self.width).each do |j|
                 prc.call(i, j)
             end
         end
@@ -126,26 +130,26 @@ class Map
     # @param map [Array<string>] a list of strings describing the map
     # @return [nil]
     # @raise [MapFormatError] if an invalid symbol is found
-    def make_map(map_data)
-        @map = Array.new(height) { Array.new(width) }
-        @entities = Array.new(height) { Array.new(width) }
+    def make_map(map_data, entity_data)
+        @map = Array.new(self.height) { Array.new(self.width) }
+        @entities = Array.new(self.height) { Array.new(self.width) }
         @boxes = []
 
         each_in_map do |i, j|
-            ele = get_element(map_data[i][j])
-            if ele.is_a? MapEntity
-                @entities[i][j] = ele 
-                @map[i][j] = Air.new
+            @map[i][j] = get_element(map_data[i][j])
+        end
 
-                if ele.is_a? Player
-                    raise MapPlayerError if player
-                    @player = ele
-                    @player_pos = Pair.new(i, j) 
-                elsif ele.is_a? Box
-                    @boxes << ele
-                end
-            else
-                @map[i][j] = ele
+        entity_data.each do |pair|
+            pos, entity = pair.first, get_element(pair.second)
+
+            @entities[pos.x][pos.y] = entity
+
+            if entity.is_a? Player
+                raise MapPlayerError if player
+                @player = entity
+                @player_pos = Pair.new(pos.x, pos.y) 
+            elsif entity.is_a? Box
+                @boxes << entity
             end
         end
 

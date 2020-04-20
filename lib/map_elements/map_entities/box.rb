@@ -1,3 +1,5 @@
+require "colorize"
+
 require_relative "./map_entity.rb"
 
 class Box < MapEntity
@@ -11,5 +13,6 @@ class Box < MapEntity
     
     def to_s
         "☒".center(2)
+        # self.done? ? "☒".center(2).green : "☒".center(2).white
     end
 end
